@@ -6,9 +6,9 @@ An interactive Bash utility that scans an IPv4 range for SSH services and config
 
 The remote script detects available tools and uses, in order:
 
-1. NetworkManager (`nmcli`), updating the active connection so the settings persist.
+1. NetworkManager (`nmcli`, if NetworkManager is running), updating the active connection so the settings persist.
 2. `systemd-resolved` (`resolvectl`), applying DNS and the search domain to the active interface for the current runtime.
-3. A plain, non-symlink `/etc/resolv.conf`, writing a static configuration.
+3. A plain, non-symlink `/etc/resolv.conf`, writing a static configuration (in place, so bind-mounted files in containers work too).
 
 The script refuses to overwrite a symlinked resolver file when it cannot find a supported manager. This avoids silently fighting DHCP or a network service. Runtime settings applied with `resolvectl` may be replaced after reboot or when the network reconnects; configure the system's network manager for permanent settings.
 
@@ -17,7 +17,7 @@ Windows is not implemented in this version. Although the script can detect SSH r
 ## Requirements and preparation
 
 - Bash 4 or newer.
-- OpenSSH client (`ssh`) and `timeout` (available on Linux and WSL).
+- OpenSSH client (`ssh`), `timeout`, `xargs` and `base64` (available on Linux and WSL).
 - Each target must run an SSH server and accept connections on TCP port 22.
 - A remote account with root or `sudo` permission to modify DNS settings.
 - For persistent changes, configure NetworkManager where possible. `systemd-resolved` changes made by this tool are runtime changes.
@@ -40,6 +40,7 @@ Yes accepts `y`, `Y`, `yes`, or `Yes`; No accepts `n`, `N`, `no`, or `No`. Press
 ## Limits
 
 - IPv4 only; at most 65,536 addresses per scan.
-- SSH port 22 only.
+- SSH port 22 by default; set `SSH_PORT=2222` for another port. `SCAN_PARALLEL` (32) and `CONNECT_TIMEOUT` (4 s) tune the scan.
+- The remote script is sent base64-encoded as the remote command of `ssh -tt`, not on stdin, so a sudo password prompt is answered on your keyboard and the reported result comes from the remote script only (never from echoed script text).
 - Linux targets with a POSIX shell. Windows, macOS, and other operating systems are not currently supported for remote configuration.
 - DNS server input accepts one IPv4 address. IPv6 DNS servers are not supported.
